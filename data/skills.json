@@ -1,0 +1,120 @@
+[
+  {
+    "id": "python",
+    "title": "Python Programming",
+    "category": "programming",
+    "description": "Functions, classes, exceptions, iterators, and readable application code.",
+    "importance": 10
+  },
+  {
+    "id": "git",
+    "title": "Git and Collaboration",
+    "category": "software engineering",
+    "description": "Branches, commits, pull requests, and reproducible project history.",
+    "importance": 8
+  },
+  {
+    "id": "data_structures",
+    "title": "Data Structures and Algorithms",
+    "category": "computer science",
+    "description": "Lists, queues, hash tables, graphs, heaps, searching, sorting, and complexity.",
+    "prerequisites": ["python"],
+    "importance": 8
+  },
+  {
+    "id": "sql",
+    "title": "SQL and Data Modeling",
+    "category": "data",
+    "description": "Query records, choose keys, model tables, and aggregate training data.",
+    "prerequisites": ["python"],
+    "importance": 8
+  },
+  {
+    "id": "numpy_pandas",
+    "title": "NumPy and pandas",
+    "category": "data",
+    "description": "Manipulate arrays and tabular records for repeatable data preparation.",
+    "prerequisites": ["python"],
+    "importance": 9
+  },
+  {
+    "id": "statistics",
+    "title": "Statistics and Linear Algebra",
+    "category": "math",
+    "description": "Understand distributions, vectors, matrices, uncertainty, and model error.",
+    "prerequisites": ["python"],
+    "importance": 9
+  },
+  {
+    "id": "ml_foundations",
+    "title": "Machine Learning Foundations",
+    "category": "machine learning",
+    "description": "Frame problems, split data, train models, and reason about generalization.",
+    "prerequisites": ["data_structures", "numpy_pandas", "statistics"],
+    "importance": 10
+  },
+  {
+    "id": "scikit_learn",
+    "title": "Classical ML with scikit-learn",
+    "category": "machine learning",
+    "description": "Build preprocessing pipelines, estimators, cross-validation, and model comparisons.",
+    "prerequisites": ["ml_foundations"],
+    "importance": 9
+  },
+  {
+    "id": "ml_evaluation",
+    "title": "Evaluation and Data Quality",
+    "category": "machine learning",
+    "description": "Choose metrics, detect leakage, inspect errors, and make results trustworthy.",
+    "prerequisites": ["ml_foundations"],
+    "importance": 10
+  },
+  {
+    "id": "pytorch",
+    "title": "Deep Learning with PyTorch",
+    "category": "deep learning",
+    "description": "Use tensors, neural networks, autograd, training loops, and checkpoints.",
+    "prerequisites": ["ml_foundations", "statistics"],
+    "importance": 9
+  },
+  {
+    "id": "llm_fundamentals",
+    "title": "Transformers and LLM Fundamentals",
+    "category": "generative AI",
+    "description": "Understand tokens, embeddings, attention, context windows, and inference.",
+    "prerequisites": ["pytorch"],
+    "importance": 10
+  },
+  {
+    "id": "api_deployment",
+    "title": "APIs and Service Design",
+    "category": "software engineering",
+    "description": "Expose model behavior through reliable APIs with validation and error handling.",
+    "prerequisites": ["python", "git"],
+    "importance": 7
+  },
+  {
+    "id": "docker_cloud",
+    "title": "Docker and Cloud Deployment",
+    "category": "production",
+    "description": "Package, deploy, monitor, and operate an AI service under resource constraints.",
+    "prerequisites": ["api_deployment"],
+    "importance": 9
+  },
+  {
+    "id": "rag",
+    "title": "Retrieval-Augmented Generation",
+    "category": "generative AI",
+    "description": "Index documents, retrieve relevant context, generate answers, and evaluate grounding.",
+    "prerequisites": ["llm_fundamentals", "api_deployment", "ml_evaluation"],
+    "importance": 10
+  },
+  {
+    "id": "portfolio",
+    "title": "Production AI Portfolio",
+    "category": "career",
+    "description": "Ship a documented project with tests, evaluation evidence, deployment, and a clear README.",
+    "prerequisites": ["scikit_learn", "rag", "docker_cloud"],
+    "importance": 10
+  }
+]

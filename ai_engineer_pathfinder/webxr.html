@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Interactive Algorithms Lab · Data Structures WebXR Lab</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #ecf5ff;
+      --muted: #9db2ca;
+      --panel: #0b1421dd;
+      --line: #2b4865;
+      --accent: #76e4ff;
+      --hot: #baff7b;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; overflow: hidden; font: 15px/1.4 system-ui, sans-serif; background: #07101b; color: var(--ink); }
+    #ui { position: fixed; z-index: 10; top: 14px; left: 14px; width: min(390px, calc(100vw - 28px)); padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); backdrop-filter: blur(12px); box-shadow: 0 16px 50px #0008; }
+    h1 { margin: 0; font-size: 1.2rem; letter-spacing: -.03em; }
+    p { margin: 7px 0; color: var(--muted); }
+    label { display: block; margin-top: 12px; color: var(--muted); font-size: .82rem; }
+    select, button { width: 100%; margin-top: 6px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: #111f31; font: inherit; }
+    button { color: #061018; background: var(--accent); border: 0; font-weight: 700; cursor: pointer; }
+    button.secondary { color: var(--ink); background: #17283b; border: 1px solid var(--line); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    #status { min-height: 42px; margin-top: 10px; padding: 9px; border-radius: 9px; background: #07101bdd; color: var(--hot); }
+    #hint { position: fixed; z-index: 5; right: 16px; bottom: 16px; max-width: 360px; padding: 10px 13px; border: 1px solid var(--line); border-radius: 12px; background: #07101bcc; color: var(--muted); }
+    #xr-button { position: fixed !important; z-index: 12 !important; right: 14px !important; top: 14px !important; left: auto !important; bottom: auto !important; width: auto !important; }
+    @media (max-width: 700px) { #hint { display: none; } #ui { max-height: calc(100vh - 28px); overflow: auto; } }
+  </style>
+</head>
+<body>
+  <section id="ui" aria-label="WebXR controls">
+    <h1>Data Structures WebXR Lab</h1>
+    <p>Five chapter stations turn the portfolio code into interactive 3D simulations. Select a station, run it, or enter immersive VR.</p>
+    <label for="chapter">Simulation</label>
+    <select id="chapter">
+      <option value="1">Chapter 1 · Foundations</option>
+      <option value="2">Chapter 2 · Arrays</option>
+      <option value="3">Chapter 3 · Simple Sorting</option>
+      <option value="4">Chapter 4 · Stacks and Queues</option>
+      <option value="5">Chapter 5 · Linked Lists</option>
+    </select>
+    <div class="row">
+      <button id="run">Run simulation</button>
+      <button id="reset" class="secondary">Reset lab</button>
+    </div>
+    <button id="tour" class="secondary">Start chapter tour</button>
+    <button id="walk" class="secondary">Enable desktop walk mode</button>
+    <div id="status">Ready. Click a 3D station or run a chapter.</div>
+  </section>
+  <div id="hint">Desktop: enable walk mode, then use WASD/arrow keys and mouse-look. Click RUN at a station to demonstrate it; click the floor to move. VR: use the thumbstick, point/select RUN, or point at the floor and select to teleport.</div>
+
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+    import { VRButton } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/webxr/VRButton.js';
+
+    const chapters = {
+      1: { title: 'Chapter 1 · Foundations', summary: 'records → hash table → graph/BFS → priority queue' },
+      2: { title: 'Chapter 2 · Arrays', summary: 'linear search vs binary search in ordered storage' },
+      3: { title: 'Chapter 3 · Simple Sorting', summary: 'bubble, selection, and insertion sort' },
+      4: { title: 'Chapter 4 · Stacks and Queues', summary: 'LIFO, FIFO, priority, and postfix parsing' },
+      5: { title: 'Chapter 5 · Linked Lists', summary: 'links, ordered lists, circular links, iterators' },
+    };
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#07101b');
+    scene.fog = new THREE.Fog('#07101b', 12, 28);
+    const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, .1, 100);
+    const player = new THREE.Group();
+    player.position.set(0, 0, 8.5);
+    scene.add(player);
+    player.add(camera);
+    camera.position.set(0, 1.7, 0);
+    camera.rotation.x = -0.05;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.xr.enabled = true;
+    renderer.xr.setReferenceSpaceType('local-floor');
+    document.body.appendChild(renderer.domElement);
+    const sessionInit = { optionalFeatures: ['local-floor', 'bounded-floor', 'dom-overlay'], domOverlay: { root: document.body } };
+    const xrButton = VRButton.createButton(renderer, sessionInit);
+    xrButton.id = 'xr-button';
+    document.body.appendChild(xrButton);
+
+    scene.add(new THREE.HemisphereLight('#c4e8ff', '#14243c', 2.2));
+    const keyLight = new THREE.DirectionalLight('#ffffff', 2.8);
+    keyLight.position.set(3, 7, 5);
+    scene.add(keyLight);
+    const floor = new THREE.Mesh(
+      new THREE.CircleGeometry(13, 64),
+      new THREE.MeshStandardMaterial({ color: '#0b1a2a', metalness: .15, roughness: .85 })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -.03;
+    scene.add(floor);
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(6.2, 6.25, 64),
+      new THREE.MeshBasicMaterial({ color: '#244e6d', transparent: true, opacity: .8, side: THREE.DoubleSide })
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = .01;
+    scene.add(ring);
+
+    function textSprite(text, color = '#ecf5ff', scale = 1) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 768;
+      canvas.height = 160;
+      const context = canvas.getContext('2d');
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.font = '700 42px system-ui, sans-serif';
+      context.fillStyle = color;
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.fillText(text, canvas.width / 2, canvas.height / 2);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true }));
+      sprite.scale.set(2.9 * scale, .62 * scale, 1);
+      return sprite;
+    }
+
+    function box(color, size = [.45, .45, .45], label = '') {
+      const material = new THREE.MeshStandardMaterial({ color, emissive: '#000000', metalness: .1, roughness: .6 });
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material);
+      mesh.userData.baseColor = color;
+      if (label) {
+        const caption = textSprite(label, '#ffffff', .34);
+        caption.position.y = size[1] * .7;
+        mesh.add(caption);
+      }
+      return mesh;
+    }
+
+    function stationBase(index, chapter) {
+      const positions = [[-4.2, 0, -1.8], [0, 0, -2.5], [4.2, 0, -1.8], [-2.2, 0, -6.0], [2.2, 0, -6.0]];
+      const group = new THREE.Group();
+      group.position.set(...positions[index]);
+      group.userData.chapter = chapter;
+      const panel = new THREE.Mesh(
+        new THREE.BoxGeometry(3.25, .12, 1.95),
+        new THREE.MeshStandardMaterial({ color: '#12283c', emissive: '#07111c', metalness: .2, roughness: .7 })
+      );
+      panel.position.y = .04;
+      panel.userData.chapter = chapter;
+      group.add(panel);
+      const title = textSprite(chapters[chapter].title, '#76e4ff', .48);
+      title.position.set(0, 1.75, 0);
+      title.userData.chapter = chapter;
+      group.add(title);
+      const summary = textSprite(chapters[chapter].summary, '#9db2ca', .24);
+      summary.position.set(0, 1.37, 0);
+      summary.userData.chapter = chapter;
+      group.add(summary);
+      group.userData.panel = panel;
+      group.userData.visuals = [];
+      const runButton = box('#2b8090', [1.12, .18, .3], 'RUN');
+      runButton.position.set(0, .34, .82);
+      runButton.userData.chapter = chapter;
+      runButton.userData.action = 'run';
+      group.userData.runButton = runButton;
+      group.add(runButton);
+      const teleportPad = new THREE.Mesh(
+        new THREE.CircleGeometry(.62, 32),
+        new THREE.MeshStandardMaterial({ color: '#234e64', emissive: '#07111c', metalness: .15, roughness: .7, transparent: true, opacity: .92 })
+      );
+      teleportPad.rotation.x = -Math.PI / 2;
+      teleportPad.position.set(0, .025, 1.55);
+      teleportPad.userData.chapter = chapter;
+      teleportPad.userData.action = 'teleport';
+      teleportPad.userData.baseColor = '#234e64';
+      group.userData.teleportPad = teleportPad;
+      group.add(teleportPad);
+      const moveLabel = textSprite('MOVE HERE', '#baff7b', .19);
+      moveLabel.position.set(0, .04, 1.55);
+      moveLabel.userData.chapter = chapter;
+      moveLabel.userData.action = 'teleport';
+      group.add(moveLabel);
+      return group;
+    }
+
+    function addVisual(station, visual) {
+      visual.userData.chapter = station.userData.chapter;
+      station.add(visual);
+      station.userData.visuals.push(visual);
+      return visual;
+    }
+
+    function graphVisual(station) {
+      const points = [[-1.05, .65, 0], [0, 1.0, 0], [1.05, .65, 0], [-.55, .15, 0], [.55, .15, 0]];
+      const nodes = points.map((position, index) => {
+        const node = box('#317ea1', [.34, .34, .34], String(index));
+        node.position.set(...position);
+        addVisual(station, node);
+        return node;
+      });
+      [[0, 1], [0, 3], [1, 2], [1, 3], [1, 4], [2, 4], [3, 4]].forEach(([from, to]) => {
+        const geometry = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(...points[from]), new THREE.Vector3(...points[to])
+        ]);
+        const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: '#46708f' }));
+        line.userData.baseColor = '#46708f';
+        addVisual(station, line);
+      });
+      station.userData.nodes = nodes;
+    }
+
+    function arrayVisual(station) {
+      const values = [3, 12, 12, 44, 77];
+      const cells = values.map((value, index) => {
+        const cell = box('#3f789d', [.48, .48, .48], String(value));
+        cell.position.set((index - 2) * .58, .42, 0);
+        addVisual(station, cell);
+        return cell;
+      });
+      station.userData.cells = cells;
+    }
+
+    function sortVisual(station) {
+      const values = [77, 46, 61, 17, 85, 59, 94];
+      const bars = values.map((value, index) => {
+        const bar = box('#5c8cbd', [.33, 1, .33], String(value));
+        bar.position.x = (index - 3) * .43;
+        setBarHeight(bar, value);
+        addVisual(station, bar);
+        return bar;
+      });
+      station.userData.bars = bars;
+    }
+
+    function setBarHeight(bar, value) {
+      const height = .25 + value / 105;
+      bar.scale.y = height;
+      bar.position.y = .09 + height / 2;
+      bar.userData.value = value;
+    }
+
+    function stackQueueVisual(station) {
+      const stack = [0, 1, 2].map((value, index) => {
+        const item = box('#9865b6', [.35, .3, .35], String(value + 1));
+        item.position.set(-.72, .35 + index * .34, 0);
+        addVisual(station, item);
+        return item;
+      });
+      const queue = ['A', 'B', 'C', 'D'].map((value, index) => {
+        const item = box('#438f85', [.32, .32, .32], value);
+        item.position.set(.15 + index * .43, .35, 0);
+        addVisual(station, item);
+        return item;
+      });
+      station.userData.stack = stack;
+      station.userData.queue = queue;
+    }
+
+    function linkedVisual(station) {
+      const points = [-1.1, -.38, .38, 1.1].map(x => [x, .55, 0]);
+      const nodes = points.map((position, index) => {
+        const node = box('#3d9c79', [.42, .42, .42], String(index + 1));
+        node.position.set(...position);
+        addVisual(station, node);
+        return node;
+      });
+      for (let index = 0; index < points.length - 1; index += 1) {
+        const geometry = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(...points[index]), new THREE.Vector3(...points[index + 1])
+        ]);
+        const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: '#5ca78c' }));
+        line.userData.baseColor = '#5ca78c';
+        addVisual(station, line);
+      }
+      const circularGeometry = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(1.1, .55, 0), new THREE.Vector3(1.1, .12, 0), new THREE.Vector3(-1.1, .12, 0), new THREE.Vector3(-1.1, .55, 0)
+      ]);
+      const circularLine = new THREE.Line(circularGeometry, new THREE.LineBasicMaterial({ color: '#b7c85d' }));
+      circularLine.userData.baseColor = '#b7c85d';
+      addVisual(station, circularLine);
+      station.userData.nodes = nodes;
+    }
+
+    const stations = [];
+    for (let index = 0; index < 5; index += 1) {
+      const station = stationBase(index, index + 1);
+      if (index === 0) graphVisual(station);
+      if (index === 1) arrayVisual(station);
+      if (index === 2) sortVisual(station);
+      if (index === 3) stackQueueVisual(station);
+      if (index === 4) linkedVisual(station);
+      stations.push(station);
+      scene.add(station);
+    }
+
+    function highlight(object, active, color = '#baff7b') {
+      if (!object || !object.material || !object.material.color) return;
+      object.material.color.set(active ? color : object.userData.baseColor || '#ffffff');
+      if (object.material.emissive) object.material.emissive.set(active ? color : '#000000');
+    }
+
+    function resetStation(station) {
+      for (const visual of station.userData.visuals) {
+        highlight(visual, false);
+        if (visual.userData.value !== undefined) setBarHeight(visual, visual.userData.value);
+      }
+      station.userData.bars?.forEach((bar, index) => setBarHeight(bar, [77, 46, 61, 17, 85, 59, 94][index]));
+      highlight(station.userData.runButton, false);
+      highlight(station.userData.teleportPad, false);
+    }
+
+    let timeline = [];
+    let timelineStart = 0;
+    let timelineRunning = false;
+    let tourTimer = null;
+
+    function schedule(at, callback) { timeline.push({ at, callback }); }
+
+    function pulse(object, at, duration = 320, color = '#baff7b') {
+      schedule(at, () => highlight(object, true, color));
+      schedule(at + duration, () => highlight(object, false));
+    }
+
+    function runTimeline() {
+      timeline.sort((a, b) => a.at - b.at);
+      timelineStart = performance.now();
+      timelineRunning = true;
+    }
+
+    function runChapter(chapter) {
+      if (tourTimer) { clearInterval(tourTimer); tourTimer = null; }
+      const station = stations[chapter - 1];
+      stations.forEach(resetStation);
+      timeline = [];
+      const status = document.getElementById('status');
+      status.textContent = `${chapters[chapter].title}: ${chapters[chapter].summary}`;
+      pulse(station.userData.runButton, 0, 420, '#baff7b');
+
+      if (chapter === 1) {
+        station.userData.nodes.forEach((node, index) => pulse(node, index * 580, 430, index === 4 ? '#baff7b' : '#76e4ff'));
+      }
+      if (chapter === 2) {
+        station.userData.cells.forEach((cell, index) => pulse(cell, index * 520, 350, index === 3 ? '#baff7b' : '#ffcf70'));
+      }
+      if (chapter === 3) {
+        const bars = station.userData.bars;
+        for (let index = 0; index < bars.length - 1; index += 1) pulse(bars[index], index * 260, 160, '#ffcf70');
+        const sorted = [17, 46, 59, 61, 77, 85, 94];
+        sorted.forEach((value, index) => schedule(2300 + index * 170, () => setBarHeight(bars[index], value)));
+        bars.forEach((bar, index) => pulse(bar, 3600 + index * 120, 280, '#baff7b'));
+      }
+      if (chapter === 4) {
+        station.userData.stack.forEach((item, index) => pulse(item, index * 480, 330, '#d69cff'));
+        station.userData.queue.forEach((item, index) => pulse(item, 1600 + index * 380, 280, '#76e4ff'));
+      }
+      if (chapter === 5) {
+        station.userData.nodes.forEach((node, index) => pulse(node, index * 480, 350, '#baff7b'));
+      }
+      runTimeline();
+    }
+
+    function resetLab() {
+      if (tourTimer) { clearInterval(tourTimer); tourTimer = null; }
+      timeline = [];
+      timelineRunning = false;
+      stations.forEach(resetStation);
+      document.getElementById('status').textContent = 'Ready. Click a 3D station or run a chapter.';
+    }
+
+    document.getElementById('run').addEventListener('click', () => runChapter(Number(document.getElementById('chapter').value)));
+    document.getElementById('reset').addEventListener('click', resetLab);
+    document.getElementById('tour').addEventListener('click', () => {
+      if (tourTimer) { clearInterval(tourTimer); tourTimer = null; document.getElementById('tour').textContent = 'Start chapter tour'; return; }
+      let chapter = 1;
+      runChapter(chapter);
+      document.getElementById('tour').textContent = 'Stop chapter tour';
+      tourTimer = setInterval(() => { chapter = chapter % 5 + 1; document.getElementById('chapter').value = String(chapter); runChapter(chapter); }, 5200);
+    });
+
+    const keys = new Set();
+    const up = new THREE.Vector3(0, 1, 0);
+    const movement = new THREE.Vector3();
+    let pointerLocked = false;
+    let cameraPitch = -0.05;
+
+    function clampPlayer() {
+      player.position.y = 0;
+      player.position.x = THREE.MathUtils.clamp(player.position.x, -12, 12);
+      player.position.z = THREE.MathUtils.clamp(player.position.z, -12, 12);
+      const distance = Math.hypot(player.position.x, player.position.z);
+      if (distance > 12.25) {
+        const scale = 12.25 / distance;
+        player.position.x *= scale;
+        player.position.z *= scale;
+      }
+    }
+
+    function updateDesktopMovement(delta) {
+      if (renderer.xr.isPresenting) return;
+      const forward = Number(keys.has('w') || keys.has('arrowup')) - Number(keys.has('s') || keys.has('arrowdown'));
+      const strafe = Number(keys.has('d') || keys.has('arrowright')) - Number(keys.has('a') || keys.has('arrowleft'));
+      movement.set(strafe, 0, -forward);
+      if (movement.lengthSq() > 0) {
+        movement.normalize().applyAxisAngle(up, player.rotation.y);
+        player.position.addScaledVector(movement, delta * 3.8);
+        clampPlayer();
+      }
+    }
+
+    function updateVRLocomotion(delta) {
+      if (!renderer.xr.isPresenting) return;
+      const session = renderer.xr.getSession();
+      if (!session) return;
+      const source = [...session.inputSources].find(input => input.handedness === 'left' && input.gamepad)
+        || [...session.inputSources].find(input => input.gamepad);
+      if (!source?.gamepad) return;
+      const axes = source.gamepad.axes;
+      const x = axes.length >= 4 ? axes[2] : axes[0];
+      const y = axes.length >= 4 ? axes[3] : axes[1];
+      if (x === undefined || y === undefined || Math.hypot(x, y) < .16) return;
+      const forward = camera.getWorldDirection(new THREE.Vector3());
+      forward.y = 0;
+      if (forward.lengthSq() === 0) return;
+      forward.normalize();
+      const right = new THREE.Vector3(-forward.z, 0, forward.x);
+      movement.copy(right).multiplyScalar(x).addScaledVector(forward, -y);
+      if (movement.lengthSq() > 1) movement.normalize();
+      player.position.addScaledVector(movement, delta * 2.6);
+      clampPlayer();
+    }
+
+    document.getElementById('walk').addEventListener('click', () => {
+      if (document.pointerLockElement === renderer.domElement) {
+        document.exitPointerLock();
+      } else if (!renderer.xr.isPresenting) {
+        renderer.domElement.requestPointerLock();
+      }
+    });
+    document.addEventListener('pointerlockchange', () => {
+      pointerLocked = document.pointerLockElement === renderer.domElement;
+      document.getElementById('walk').textContent = pointerLocked ? 'Exit desktop walk mode' : 'Enable desktop walk mode';
+      if (pointerLocked) document.getElementById('status').textContent = 'Walk mode active. WASD/arrows move; mouse-look aims; click a station to run it.';
+    });
+    document.addEventListener('mousemove', event => {
+      if (!pointerLocked || renderer.xr.isPresenting) return;
+      player.rotation.y -= event.movementX * .0022;
+      cameraPitch = THREE.MathUtils.clamp(cameraPitch - event.movementY * .0018, -1.15, 1.15);
+      camera.rotation.x = cameraPitch;
+    });
+    addEventListener('keydown', event => {
+      const key = event.key.toLowerCase();
+      if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
+        keys.add(key);
+        if (pointerLocked) event.preventDefault();
+      }
+    });
+    addEventListener('keyup', event => keys.delete(event.key.toLowerCase()));
+
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const teleportMarker = new THREE.Mesh(
+      new THREE.RingGeometry(.28, .42, 32),
+      new THREE.MeshBasicMaterial({ color: '#baff7b', transparent: true, opacity: .95, side: THREE.DoubleSide })
+    );
+    teleportMarker.rotation.x = -Math.PI / 2;
+    teleportMarker.position.y = .035;
+    teleportMarker.visible = false;
+    scene.add(teleportMarker);
+
+    function findInteraction(object) {
+      let current = object;
+      while (current) {
+        if (current.userData?.chapter) {
+          return {
+            chapter: current.userData.chapter,
+            action: current.userData.action || 'run',
+          };
+        }
+        current = current.parent;
+      }
+      return null;
+    }
+
+    function teleportTo(point, message = 'Moved to a new position. Point at a station RUN button to start its demonstration.') {
+      if (Math.hypot(point.x, point.z) > 12.25) return false;
+      player.position.set(point.x, 0, point.z);
+      teleportMarker.position.set(point.x, .035, point.z);
+      teleportMarker.visible = true;
+      document.getElementById('status').textContent = message;
+      return true;
+    }
+
+    function teleportFromRay() {
+      const target = new THREE.Vector3();
+      if (raycaster.ray.intersectPlane(groundPlane, target)) return teleportTo(target);
+      return false;
+    }
+
+    function activateRay() {
+      const hits = raycaster.intersectObjects(stations, true);
+      if (hits.length) {
+        const interaction = findInteraction(hits[0].object);
+        if (interaction?.action === 'teleport') {
+          const pad = stations[interaction.chapter - 1].userData.teleportPad;
+          const target = pad.getWorldPosition(new THREE.Vector3());
+          return teleportTo(target, `At ${chapters[interaction.chapter].title}. Point at RUN to start the demonstration.`);
+        }
+        if (interaction?.chapter) {
+          document.getElementById('chapter').value = String(interaction.chapter);
+          runChapter(interaction.chapter);
+          return true;
+        }
+      }
+      return teleportFromRay();
+    }
+
+    renderer.domElement.addEventListener('pointerdown', event => {
+      pointer.x = (event.clientX / innerWidth) * 2 - 1;
+      pointer.y = -(event.clientY / innerHeight) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+      activateRay();
+    });
+
+    let hoveredButton = null;
+    renderer.domElement.addEventListener('pointermove', event => {
+      if (pointerLocked || renderer.xr.isPresenting) return;
+      pointer.x = (event.clientX / innerWidth) * 2 - 1;
+      pointer.y = -(event.clientY / innerHeight) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+      const hit = raycaster.intersectObjects(stations, true)[0];
+      const interaction = hit && findInteraction(hit.object);
+      const nextButton = interaction?.action === 'run' ? stations[interaction.chapter - 1].userData.runButton : null;
+      if (hoveredButton !== nextButton) {
+        if (hoveredButton) highlight(hoveredButton, false);
+        hoveredButton = nextButton;
+        if (hoveredButton) highlight(hoveredButton, true, '#baff7b');
+      }
+    });
+
+    for (let index = 0; index < 2; index += 1) {
+      const controller = renderer.xr.getController(index);
+      controller.add(new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -1)]),
+        new THREE.LineBasicMaterial({ color: '#76e4ff' })
+      ));
+      controller.addEventListener('selectstart', () => {
+        const origin = controller.getWorldPosition(new THREE.Vector3());
+        const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(controller.getWorldQuaternion(new THREE.Quaternion()));
+        raycaster.set(origin, direction);
+        activateRay();
+      });
+      player.add(controller);
+    }
+
+    renderer.xr.addEventListener('sessionstart', () => {
+      if (document.pointerLockElement) document.exitPointerLock();
+      document.getElementById('status').textContent = 'Immersive mode active. Thumbstick moves; point/select RUN or a floor location.';
+    });
+    renderer.xr.addEventListener('sessionend', () => {
+      document.getElementById('status').textContent = 'Immersive mode ended. Enable desktop walk mode or use the chapter controls.';
+    });
+
+    let lastFrame = performance.now();
+    function render(now) {
+      const delta = Math.min((now - lastFrame) / 1000, .05);
+      lastFrame = now;
+      updateDesktopMovement(delta);
+      updateVRLocomotion(delta);
+      if (timelineRunning) {
+        const elapsed = now - timelineStart;
+        while (timeline.length && timeline[0].at <= elapsed) timeline.shift().callback();
+        if (!timeline.length) timelineRunning = false;
+      }
+      renderer.render(scene, camera);
+    }
+    renderer.setAnimationLoop(render);
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+  </script>
+</body>
+</html>

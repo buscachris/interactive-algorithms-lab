@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Local outputs, credentials and generated archives
+*_output/
+.env
+.env.*
+!.env.example
+*.zip
+*.egg-info/
+build/
+dist/

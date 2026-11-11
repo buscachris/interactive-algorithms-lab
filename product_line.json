@@ -1,0 +1,39 @@
+{
+  "brand": "Interactive Algorithms Lab",
+  "positioning": "CLI-first tools for practical AI-engineering work",
+  "products": [
+    {
+      "id": "pathfinder-core",
+      "name": "Interactive Algorithms Lab Toolkit",
+      "type": "digital-download",
+      "status": "available",
+      "price": "$29 one-time",
+      "description": "Skill planning, tested Python examples, public-lead ranking, local drafts, and review digests."
+    },
+    {
+      "id": "job-radar-companion",
+      "name": "Job Radar Companion",
+      "type": "digital-download",
+      "status": "in-development",
+      "price": "$19 one-time",
+      "description": "Pi-friendly scheduled monitoring, deduplicated job queues, and local desktop updates."
+    },
+    {
+      "id": "workflow-sprint",
+      "name": "Private AI Workflow Sprint",
+      "type": "fixed-scope-service",
+      "status": "available-by-review",
+      "price": "$750-$1500 pilot range",
+      "description": "A bounded prototype, evaluation checks, and handoff for one approved internal workflow."
+    },
+    {
+      "id": "private-compute-pilot",
+      "name": "Private Inference and Batch Compute Pilot",
+      "type": "fixed-scope-service",
+      "status": "available-by-review",
+      "price": "$300-$1000 pilot range",
+      "description": "Capacity report, repeatable inference or batch runner, evaluation checks, and a secure handoff for one approved workload."
+    }
+  ],
+  "boundary": "No product promises jobs, clients, sales, or income. The monitor prepares listings for human review and never submits applications."
+}
