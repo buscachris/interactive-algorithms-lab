@@ -1,9 +1,10 @@
 # Interactive Algorithms Lab
 
-Interactive Algorithms Lab is a small, dependency-free Python application that
-turns a skill roadmap into a searchable data structure and a prerequisite
-planner. It is also a chapter-by-chapter data structures portfolio: every
-chapter adds a working implementation, tests, and a summary in this README.
+I built this Python lab to answer a practical question about a skill roadmap. Given what I already know, what can I learn next? I use the catalog to practice search, traversal, and prerequisite planning. Each chapter pairs its implementation with tests.
+
+![Skill planner showing 2 of 15 skills completed and a path to Production AI Portfolio](docs/screenshots/skill-dashboard.png)
+
+I start this example with Python and Git marked complete. For the portfolio target, my planner traces a path through API design and deployment and ranks the skills I can tackle next.
 
 ## Chapter 1 Summary: Data Structures and Algorithms
 
