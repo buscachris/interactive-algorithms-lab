@@ -16,12 +16,11 @@ def _product_docs() -> dict[str, str]:
     return {
         "docs/QUICKSTART.md": """# Quickstart
 
-Requires Python 3.10 or newer.
+From the extracted toolkit directory, run these commands with Python 3.10 or newer.
 
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
-python -m pip install -e .
 python -m ai_engineer_pathfinder
 python -m ai_engineer_pathfinder career search --query \"AI engineer\" --entry-level --engineering-only
 python -m ai_engineer_pathfinder career monitor --output ./career_output --notify
@@ -73,7 +72,7 @@ requirements.
 - [ ] Run the test suite.
 - [ ] Review the archive file list.
 - [ ] Confirm no personal data or credentials are present.
-- [ ] Choose a license and add it before public distribution.
+- [ ] Verify that `LICENSE` and `THIRD_PARTY_NOTICES.md` match the source.
 - [ ] Create the storefront under the intended legal/payment identity.
 - [ ] Upload the archive and test a clean customer download.
 - [ ] Keep a free README/demo so buyers can evaluate the fit.
@@ -111,7 +110,15 @@ def build_release(output_zip: Path, version: str = PRODUCT_VERSION) -> tuple[Pat
     """Build an archive from known project files and return archive metadata."""
     project_root = Path(__file__).resolve().parents[1]
     root_name = f"interactive-algorithms-lab-toolkit-{version}"
-    selected: list[Path] = [project_root / "README.md", project_root / "pyproject.toml"]
+    selected = [
+        project_root / "README.md",
+        project_root / "LICENSE",
+        project_root / "THIRD_PARTY_NOTICES.md",
+        project_root / "VERIFICATION.md",
+        project_root / "docs/screenshots/skill-dashboard.png",
+        project_root / "pyproject.toml",
+        project_root / "ai_engineer_pathfinder/webxr.html",
+    ]
     selected.extend(sorted((project_root / "ai_engineer_pathfinder").glob("*.py")))
     selected.append(project_root / "data" / "skills.json")
     selected.append(project_root / "product_line.json")

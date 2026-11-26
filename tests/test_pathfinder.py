@@ -234,6 +234,19 @@ class CareerAutomationTests(unittest.TestCase):
             with zipfile.ZipFile(archive_path) as archive:
                 names = archive.namelist()
                 archive_text = "\n".join(name for name in names)
+                root, = zipfile.Path(archive).iterdir()
+                manifest_files = json.loads((root / "MANIFEST.json").read_text())["files"]
+                source = Path(__file__).resolve().parents[1]
+                for relative in (
+                    "LICENSE",
+                    "THIRD_PARTY_NOTICES.md",
+                    "VERIFICATION.md",
+                    "docs/screenshots/skill-dashboard.png",
+                    "ai_engineer_pathfinder/webxr.html",
+                ):
+                    with self.subTest(relative=relative):
+                        self.assertIn(relative, manifest_files)
+                        self.assertEqual((root / relative).read_bytes(), (source / relative).read_bytes())
             manifest = manifest_path.read_text(encoding="utf-8")
         self.assertTrue(files)
         self.assertIn("store_page_draft.md", archive_text)

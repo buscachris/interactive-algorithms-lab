@@ -174,4 +174,4 @@ This repository contains the Python package, browser page, generic skill data, t
 
 Run `python3 -m unittest discover -s tests -v` for the offline suite. Headset WebXR, external feeds, payment providers and production deployment require separate validation. Third-party browser dependencies are described in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-The current product ZIP builder omits `webxr.html`, `LICENSE` and third-party notices; its archive is not a complete release. Use the source checkout until packaging is corrected and verified.
+I build the toolkit archive with `python3 -m ai_engineer_pathfinder product build --output toolkit.zip`. It includes my [MIT license](LICENSE), the third-party notices, the WebXR page, and the dashboard screenshot above. The accompanying manifest lists the packaged files and the ZIP’s SHA-256 checksum.

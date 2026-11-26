@@ -41,4 +41,7 @@ Interactive Algorithms Lab.
 - `python3 -m ai_engineer_pathfinder`: passed; displayed the 2/15 baseline and recommendations without network access.
 - Python syntax and JSON parsing passed. Source hashes, selected file list and credential-pattern checks passed.
 - Tests cover fixtures and handler construction; they do not establish live browser, payment-provider or external-feed behavior.
-- The generated product ZIP is not a complete release: the current builder selects Python modules but omits the browser HTML, LICENSE and third-party notices. Prepare and validate a complete release package before distributing that archive. The source repository contains those files.
+
+## Toolkit archive
+
+The archive test builds a fresh ZIP and compares its MIT license, third-party notices, WebXR page, dashboard screenshot, and verification notes with the source files byte for byte. It also checks that the internal manifest lists each file.
